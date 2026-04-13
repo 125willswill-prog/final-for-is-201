@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bananagrams Solitaire</title>
+    <link rel="stylesheet" href="css/fsstyles.css">
+    <style>
+        /* Target the specific link in the nav bar */
+.navbar a {
+    text-decoration: none; /* Removes the underline */
+    color: #000000;       /* Matches your cream text color */
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 8px 15px;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+/* Ensure the hover effect stays consistent */
+.navbar a:hover {
+    color: #1b261e;            /* Dark green text on hover */
+    background-color: #ebf4ea; /* Cream background on hover */
+    border-radius: 2px;
+}
+        #game-area {
+            min-height: 500px;
+            position: relative;
+            background-color: #fcfaf5;
+            border: 2px dashed #1b261e;
+            margin-top: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+        .tile {
+            width: 45px;
+            height: 45px;
+            background-color: #f3c137;
+            color: #1b261e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.6rem;
+            border-radius: 4px;
+            border: 2px solid #1b261e;
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            box-shadow: 3px 3px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        
+        /* Modal Styling */
+        #win-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            padding: 30px;
+            border: 3px solid #1b261e;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            z-index: 2000;
+            text-align: center;
+            border-radius: 8px;
+        }
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1999;
+        }
+        
+        /* Button Styling */
+        .controls {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    position: relative;
+    z-index: 2001; /* Keeps buttons above the tiles and the modal overlay */
+}
+        .btn-game {
+            background-color: #1b261e;
+            color: #f4f1ea;
+            border: none;
+            padding: 12px 30px;
+            font-family: 'Georgia', serif;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: background 0.3s;
+        }
+        .btn-game:hover {
+            background-color: #4a5d4e;
+        }
+        .btn-done {
+            background-color: #e67e22; /* A nice earthy orange for the 'Done' action */
+        }
+        .btn-done:hover {
+            background-color: #d35400;
+        }
+        .btn-dump {
+    background-color: #8b4513; /* Saddle Brown earthtone */
+}
+.btn-dump:hover {
+    background-color: #5d2e0d;
+}
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="index.html">Back to Vacation Page</a>
+    </nav>
+
+    <div class="content-block">
+    <h1>Bananagrams Solitaire</h1>
+    
+    <div class="instructions-box" style="text-align: left; margin-bottom: 20px; color: #1b261e; border-left: 4px solid #e67e22; padding-left: 15px;">
+        <h3>How to Play:</h3>
+        <ul style="list-style-type: none; padding: 0;">
+            <li><strong>1. Split:</strong> Click "Split!" to receive your starting 15 tiles.</li>
+            <li><strong>2. Build:</strong> Drag the tiles to create a grid of intersecting words (like a crossword).</li>
+            <li><strong>3. The Double Twist:</strong> Don't like your letters? Click <strong>"Dump"</strong>. Any tiles you <em>haven't moved yet</em> will be discarded, but the Robot will replace each one with <strong>two</strong> new tiles!</li>
+            <li><strong>4. Peel:</strong> Once you've used all your tiles in a valid grid, click <strong>"Done"</strong> to claim victory!</li>
+        </ul>
+    </div>
+    
+    <div class="controls">
+        <button class="btn-game" onclick="dealTiles()">Split!</button>
+        <button class="btn-game btn-dump" onclick="dumpTiles()">Dump (Double Twist)</button>
+        <button class="btn-game btn-done" onclick="showWinMessage()">Done</button>
+    </div>
+
+    <div id="game-area"></div>
+</div>
+
+    <div id="modal-overlay"></div>
+    <div id="win-modal">
+        <h2 style="color: #1b261e;">Nice Job!</h2>
+        <p style="color: #1b261e;">Make sure to check your words with a dictionary!</p>
+        <button class="btn-game" onclick="closeModal()">OK</button>
+    </div>
+
+    <script>
+    const gameArea = document.getElementById('game-area');
+    const modal = document.getElementById('win-modal');
+    const overlay = document.getElementById('modal-overlay');
+    
+    // Weighted alphabet for better word-building (more vowels and common letters)
+    const alphabet = "AAAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSSSTTTTTTUUUUVVWWXYYZ";
+    
+    /**
+     * Resets the board and deals 15 tiles in a spread-out grid.
+     */
+    function dealTiles() {
+        gameArea.innerHTML = '';
+        const tileCount = 15;
+        const tilesPerRow = 5; 
+        const spacing = 65;    
+        const startX = 40;     
+        const startY = 40;     
+
+        for (let i = 0; i < tileCount; i++) {
+            const char = alphabet[Math.floor(Math.random() * alphabet.length)];
+            
+            const row = Math.floor(i / tilesPerRow);
+            const col = i % tilesPerRow;
+            
+            const finalX = startX + (col * spacing) + (Math.random() * 10);
+            const finalY = startY + (row * spacing) + (Math.random() * 10);
+
+            createTile(char, finalX, finalY);
+        }
+    }
+
+    /**
+     * Finds unmoved tiles, removes them, and replaces each with TWO new ones.
+     */
+    function dumpTiles() {
+        const allTiles = Array.from(document.querySelectorAll('.tile'));
+        const unmovedTiles = allTiles.filter(t => t.dataset.moved === "false");
+
+        if (unmovedTiles.length === 0) {
+            alert("The Robot says: You've already touched all your tiles! No swapping allowed.");
+            return;
+        }
+
+        // The Twist: Every 1 tile discarded becomes 2 new tiles
+        const penaltyCount = unmovedTiles.length * 2;
+        unmovedTiles.forEach(t => t.remove());
+
+        const tilesPerRow = 6;
+        const spacing = 55;
+
+        for (let i = 0; i < penaltyCount; i++) {
+            const char = alphabet[Math.floor(Math.random() * alphabet.length)];
+            const row = Math.floor(i / tilesPerRow);
+            const col = i % tilesPerRow;
+            
+            const finalX = 40 + (col * spacing) + (Math.random() * 10);
+            const finalY = 40 + (row * spacing) + (Math.random() * 10);
+
+            createTile(char, finalX, finalY);
+        }
+    }
+
+    /**
+     * Creates a tile element with drag-and-drop functionality.
+     */
+    function createTile(char, x, y) {
+        const tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.textContent = char;
+        tile.style.left = x + 'px';
+        tile.style.top = y + 'px';
+        
+        // Track movement status for the "Dump" logic
+        tile.dataset.moved = "false";
+
+        tile.onmousedown = function(e) {
+            // Bring currently dragged tile to the front
+            const allTiles = document.querySelectorAll('.tile');
+            allTiles.forEach(t => t.style.zIndex = 10);
+            tile.style.zIndex = 1000;
+            
+            function moveAt(pageX, pageY) {
+                const rect = gameArea.getBoundingClientRect();
+                // Account for container offset and page scroll
+                tile.style.left = (pageX - rect.left - window.scrollX - tile.offsetWidth / 2) + 'px';
+                tile.style.top = (pageY - rect.top - window.scrollY - tile.offsetHeight / 2) + 'px';
+                
+                // Once it moves even a pixel, it's no longer eligible for a Dump swap
+                tile.dataset.moved = "true";
+            }
+
+            function onMouseMove(e) { moveAt(e.pageX, e.pageY); }
+            document.addEventListener('mousemove', onMouseMove);
+
+            tile.onmouseup = function() {
+                document.removeEventListener('mousemove', onMouseMove);
+                tile.onmouseup = null;
+            };
+        };
+
+        // Prevent default browser ghost-image drag
+        tile.ondragstart = () => false;
+        gameArea.appendChild(tile);
+    }
+
+    /**
+     * Pop-up Modal Controls
+     */
+    function showWinMessage() {
+        modal.style.display = 'block';
+        overlay.style.display = 'block';
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+        overlay.style.display = 'none';
+    }
+
+    // Initialize the game on load
+    dealTiles();
+</script>
+</body>
+</html>
