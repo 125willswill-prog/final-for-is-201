@@ -52,7 +52,19 @@
             z-index: 10;
         }
         
-        /* Modal Styling */
+        /* Modal Overlay - The dark background that covers the game */
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 9998; /* Under the modal, but above the game */
+        }
+
+        /* The actual "Nice Job" box */
         #win-modal {
             display: none;
             position: fixed;
@@ -63,27 +75,20 @@
             padding: 30px;
             border: 3px solid #1b261e;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            z-index: 2000;
+            z-index: 9999; /* The highest layer */
             text-align: center;
             border-radius: 8px;
-        }
-        #modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 1999;
         }
         
         /* Button Styling */
         .controls {
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    position: relative;
-    z-index: 2001; /* Keeps buttons above the tiles and the modal overlay */
-}
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            position: relative;
+            z-index: 5; /* Lower than the modal so it gets covered */
+        }
         .btn-game {
             background-color: #1b261e;
             color: #f4f1ea;
